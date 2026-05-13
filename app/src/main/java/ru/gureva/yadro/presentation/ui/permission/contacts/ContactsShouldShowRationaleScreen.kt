@@ -28,18 +28,18 @@ fun ContactsShouldShowRationaleScreen(
     ) {
         Spacer(modifier = Modifier.weight(1f))
         Text(
-            text = stringResource(R.string.permission_rationale_title),
+            text = stringResource(R.string.contacts_permission_rationale_title),
             style = MaterialTheme.typography.headlineMedium
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = stringResource(R.string.permission_rationale_desc),
+            text = stringResource(R.string.contacts_permission_rationale_desc),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.secondary
         )
         Spacer(modifier = Modifier.weight(1f))
         CustomButton(
-            title = stringResource(R.string.permit),
+            title = stringResource(R.string.allow),
             onClick = { onRequestPermission() }
         )
         CustomTextButton(

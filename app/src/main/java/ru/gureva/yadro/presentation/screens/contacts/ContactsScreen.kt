@@ -1,6 +1,7 @@
 package ru.gureva.yadro.presentation.screens.contacts
 
 import android.Manifest
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,32 +23,33 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ru.gureva.yadro.presentation.ui.permission.PermissionStatus
-import ru.gureva.yadro.presentation.ui.permission.rememberPermissionHandler
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.toUri
-import kotlinx.coroutines.launch
 import ru.gureva.yadro.R
 import ru.gureva.yadro.domain.model.Contact
+import ru.gureva.yadro.presentation.ui.permission.PermissionStatus
 import ru.gureva.yadro.presentation.ui.permission.contacts.ContactsDeniedPermanentlyScreen
 import ru.gureva.yadro.presentation.ui.permission.contacts.ContactsShouldShowRationaleScreen
+import ru.gureva.yadro.presentation.ui.permission.rememberPermissionHandler
+import ru.gureva.yadro.utils.callContact
 import ru.gureva.yadro.utils.openAppSettings
 
 @Composable
@@ -56,25 +58,25 @@ fun ContactsScreen(viewModel: ContactsViewModel = hiltViewModel()) {
     val dispatch = viewModel::dispatch
 
     val context = LocalContext.current
-    val (permissionStatus, requestPermission) = rememberPermissionHandler(Manifest.permission.READ_CONTACTS)
+    val (contactsPermissionStatus, requestContactsPermission) = rememberPermissionHandler(Manifest.permission.READ_CONTACTS)
+    val (callPermissionStatus, requestCallPermission) = rememberPermissionHandler(Manifest.permission.CALL_PHONE)
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        when (permissionStatus) {
-            PermissionStatus.Granted -> ContactsScreenContent(state, dispatch)
+        when (contactsPermissionStatus) {
+            PermissionStatus.Granted -> ContactsScreenContent(state, dispatch, callPermissionStatus, requestCallPermission)
             PermissionStatus.ShouldShowRationale -> ContactsShouldShowRationaleScreen(
-                onRequestPermission = { requestPermission() }
+                onRequestPermission = { requestContactsPermission() }
             )
             PermissionStatus.DeniedPermanently -> ContactsDeniedPermanentlyScreen(
                 onOpenSettings = { context.openAppSettings() },
-                onContinue = { requestPermission() }
+                onContinue = { requestContactsPermission() }
             )
             PermissionStatus.RequestRequired -> {
-                LaunchedEffect(Unit) { requestPermission() }
+                LaunchedEffect(Unit) { requestContactsPermission() }
             }
             null -> {}
         }
@@ -84,8 +86,21 @@ fun ContactsScreen(viewModel: ContactsViewModel = hiltViewModel()) {
         viewModel.sideEffect.collect {
             when (it) {
                 is ContactsSideEffect.ShowSnackbar -> {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar(it.message)
+                    val snackbar = snackbarHostState.showSnackbar(
+                        message = it.message,
+                        actionLabel = it.action,
+                        duration = SnackbarDuration.Long
+                    )
+
+                    if (snackbar == SnackbarResult.ActionPerformed) {
+                        when (it.action) {
+                            context.getString(R.string.open_settings) -> {
+                                context.openAppSettings()
+                            }
+                            context.getString(R.string.allow) -> {
+                                requestCallPermission()
+                            }
+                        }
                     }
                 }
             }
@@ -96,11 +111,15 @@ fun ContactsScreen(viewModel: ContactsViewModel = hiltViewModel()) {
 @Composable
 internal fun ContactsScreenContent(
     state: ContactsState,
-    dispatch: (ContactsEvent) -> Unit
+    dispatch: (ContactsEvent) -> Unit,
+    callPermissionStatus: PermissionStatus?,
+    requestCallPermission: () -> Unit
 ) {
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         dispatch(ContactsEvent.LoadContacts)
     }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -112,7 +131,15 @@ internal fun ContactsScreenContent(
             CircularProgressIndicator()
         }
         else {
-            ContactsList(state.contacts)
+            ContactsList(state.contacts, onCallContact = { phone ->
+                when (callPermissionStatus) {
+                    PermissionStatus.Granted -> { context.callContact(phone) }
+                    PermissionStatus.RequestRequired -> { requestCallPermission() }
+                    PermissionStatus.ShouldShowRationale -> { dispatch(ContactsEvent.ShowCallPermissionRationale) }
+                    PermissionStatus.DeniedPermanently -> { dispatch(ContactsEvent.ShowCallPermissionDenied) }
+                    null -> {}
+                }
+            })
         }
     }
 }
@@ -134,7 +161,8 @@ internal fun Header() {
 
 @Composable
 internal fun ContactsList(
-    contacts: Map<Char,List<Contact>>
+    contacts: Map<Char,List<Contact>>,
+    onCallContact: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.padding(start = 8.dp),
@@ -153,7 +181,7 @@ internal fun ContactsList(
                 items = contactsList,
                 key = { index, item -> item.id }
             ) { index, item ->
-                ContactItem(item)
+                ContactItem(item, onCallContact)
                 if (index < contactsList.size - 1) {
                     HorizontalDivider(
                         modifier = Modifier
@@ -169,10 +197,16 @@ internal fun ContactsList(
 
 @Composable
 internal fun ContactItem(
-    contact: Contact
+    contact: Contact,
+    onCallContact: (String) -> Unit
 ) {
     Row(
-        modifier = Modifier.padding(vertical = 4.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                onCallContact(contact.phone)
+            }
+            .padding(vertical = 4.dp)
     ) {
         AsyncImage(
             model = contact.image?.toUri() ?: R.drawable.avatar,

@@ -28,6 +28,8 @@ class ContactsViewModel @Inject constructor(
     fun dispatch(event: ContactsEvent) {
         when (event) {
             ContactsEvent.LoadContacts -> loadContacts()
+            ContactsEvent.ShowCallPermissionRationale -> showCallPermissionRationale()
+            ContactsEvent.ShowCallPermissionDenied -> showCallPermissionDenied()
         }
     }
 
@@ -45,9 +47,33 @@ class ContactsViewModel @Inject constructor(
                 .onFailure {
                     _state.update { it.copy(isLoading = false) }
                     _sideEffect.emit(
-                        ContactsSideEffect.ShowSnackbar(resourceManager.getString(R.string.contacts_loading_error))
+                        ContactsSideEffect.ShowSnackbar(
+                            message = resourceManager.getString(R.string.contacts_loading_error)
+                        )
                     )
                 }
+        }
+    }
+
+    private fun showCallPermissionRationale() {
+        viewModelScope.launch {
+            _sideEffect.emit(
+                ContactsSideEffect.ShowSnackbar(
+                    message = resourceManager.getString(R.string.call_permission_rationale),
+                    action = resourceManager.getString(R.string.allow)
+                )
+            )
+        }
+    }
+
+    private fun showCallPermissionDenied() {
+        viewModelScope.launch {
+            _sideEffect.emit(
+                ContactsSideEffect.ShowSnackbar(
+                    message = resourceManager.getString(R.string.call_permission_denied),
+                    action = resourceManager.getString(R.string.open_settings)
+                )
+            )
         }
     }
 }

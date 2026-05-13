@@ -29,12 +29,12 @@ fun ContactsDeniedPermanentlyScreen(
     ) {
         Spacer(modifier = Modifier.weight(1f))
         Text(
-            text = stringResource(R.string.permission_denied_title),
+            text = stringResource(R.string.contacts_permission_denied_title),
             style = MaterialTheme.typography.headlineMedium
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = stringResource(R.string.permission_denied_desc),
+            text = stringResource(R.string.contacts_permission_denied_desc),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.secondary
         )
