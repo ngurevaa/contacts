@@ -1,4 +1,4 @@
-package ru.gureva.yadro
+package ru.gureva.yadro.di
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
