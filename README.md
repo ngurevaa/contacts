@@ -15,14 +15,34 @@
 </p>
 
 ### Скринкасты
-<p>
-  
-  https://github.com/user-attachments/assets/ec024a14-5e6a-4be5-92bd-a88a561c9939
+<table>
+<tr>
+<td>
 
-  https://github.com/user-attachments/assets/40b54593-ae61-451d-a2a9-f21b314c8261
+<video src="https://github.com/user-attachments/assets/ec024a14-5e6a-4be5-92bd-a88a561c9939"
+       width="250"
+       controls>
+</video>
 
-  [1.webm](https://github.com/user-attachments/assets/9f6b95f0-2299-450d-8e78-f15b33dafcd2)
-</p>
+</td>
+<td>
+
+<video src="https://github.com/user-attachments/assets/40b54593-ae61-451d-a2a9-f21b314c8261"
+       width="250"
+       controls>
+</video>
+
+</td>
+<td>
+
+<video src="https://github.com/user-attachments/assets/9f6b95f0-2299-450d-8e78-f15b33dafcd2"
+       width="250"
+       controls>
+</video>
+
+</td>
+</tr>
+</table>
 
 
 
