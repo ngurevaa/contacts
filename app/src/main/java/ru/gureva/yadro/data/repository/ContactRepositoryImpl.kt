@@ -6,12 +6,14 @@ import androidx.core.database.getStringOrNull
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import ru.gureva.yadro.data.service.ContactServiceConnector
 import ru.gureva.yadro.domain.model.Contact
 import ru.gureva.yadro.domain.repository.ContactRepository
 import javax.inject.Inject
 
 class ContactRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val serviceConnector: ContactServiceConnector
 ) : ContactRepository {
     override suspend fun getAllContacts(): List<Contact> {
         return withContext(Dispatchers.IO) {
@@ -24,15 +26,14 @@ class ContactRepositoryImpl @Inject constructor(
                     ContactsContract.CommonDataKinds.Phone.PHOTO_URI
                 ),
                 null,
-                // "${ContactsContract.RawContacts.ACCOUNT_TYPE} IS NULL",
                 null,
                 "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} ASC"
             )
 
             val contacts = mutableListOf<Contact>()
             cursor?.use {
-                val idIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
-                val nameIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                val idIndex = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
+                val nameIndex = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
                 val numberIndex = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
                 val imageIndex = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.PHOTO_URI)
 
@@ -48,6 +49,17 @@ class ContactRepositoryImpl @Inject constructor(
             }
 
             contacts
+        }
+    }
+
+    override suspend fun deleteDuplicates(): Int {
+        serviceConnector.bind()
+
+        return try {
+            val service = serviceConnector.getService()
+            service.removeDuplicates()
+        } finally {
+            serviceConnector.unbind()
         }
     }
 }

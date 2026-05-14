@@ -6,7 +6,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ru.gureva.yadro.data.repository.ContactRepositoryImpl
 import ru.gureva.yadro.domain.repository.ContactRepository
+import ru.gureva.yadro.domain.usecase.DeleteDuplicateContactsUseCase
 import ru.gureva.yadro.domain.usecase.GetContactsUseCase
+import ru.gureva.yadro.domain.usecase.impl.DeleteDuplicateContactsUseCaseImpl
 import ru.gureva.yadro.domain.usecase.impl.GetContactsUseCaseImpl
 
 @Module
@@ -21,4 +23,9 @@ abstract class ContactsModule {
     abstract fun bindGetContactsUseCase(
         getContactsUseCaseImpl: GetContactsUseCaseImpl
     ): GetContactsUseCase
+
+    @Binds
+    abstract fun bindDeleteDuplicateContactsUseCase(
+        deleteDuplicateContactsUseCaseImpl: DeleteDuplicateContactsUseCaseImpl
+    ): DeleteDuplicateContactsUseCase
 }

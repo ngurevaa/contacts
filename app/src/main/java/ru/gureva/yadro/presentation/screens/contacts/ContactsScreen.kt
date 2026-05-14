@@ -1,7 +1,7 @@
 package ru.gureva.yadro.presentation.screens.contacts
 
 import android.Manifest
-import androidx.compose.foundation.clickable
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -45,11 +46,11 @@ import coil3.compose.AsyncImage
 import coil3.toUri
 import ru.gureva.yadro.R
 import ru.gureva.yadro.domain.model.Contact
+import ru.gureva.yadro.presentation.ui.components.CustomButton
 import ru.gureva.yadro.presentation.ui.permission.PermissionStatus
 import ru.gureva.yadro.presentation.ui.permission.contacts.ContactsDeniedPermanentlyScreen
 import ru.gureva.yadro.presentation.ui.permission.contacts.ContactsShouldShowRationaleScreen
 import ru.gureva.yadro.presentation.ui.permission.rememberPermissionHandler
-import ru.gureva.yadro.utils.callContact
 import ru.gureva.yadro.utils.openAppSettings
 
 @Composable
@@ -58,25 +59,28 @@ fun ContactsScreen(viewModel: ContactsViewModel = hiltViewModel()) {
     val dispatch = viewModel::dispatch
 
     val context = LocalContext.current
-    val (contactsPermissionStatus, requestContactsPermission) = rememberPermissionHandler(Manifest.permission.READ_CONTACTS)
-    val (callPermissionStatus, requestCallPermission) = rememberPermissionHandler(Manifest.permission.CALL_PHONE)
+    val (readContactsPermissionStatus, requestReadContactsPermission) =
+        rememberPermissionHandler(Manifest.permission.READ_CONTACTS)
+    val (writeContactsPermissionStatus, requestWriteContactsPermission) =
+        rememberPermissionHandler(Manifest.permission.WRITE_CONTACTS)
 
     val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        when (contactsPermissionStatus) {
-            PermissionStatus.Granted -> ContactsScreenContent(state, dispatch, callPermissionStatus, requestCallPermission)
+        when (readContactsPermissionStatus) {
+            PermissionStatus.Granted -> ContactsScreenContent(state, dispatch,
+                writeContactsPermissionStatus, requestWriteContactsPermission)
             PermissionStatus.ShouldShowRationale -> ContactsShouldShowRationaleScreen(
-                onRequestPermission = { requestContactsPermission() }
+                onRequestPermission = { requestReadContactsPermission() }
             )
             PermissionStatus.DeniedPermanently -> ContactsDeniedPermanentlyScreen(
                 onOpenSettings = { context.openAppSettings() },
-                onContinue = { requestContactsPermission() }
+                onContinue = { requestReadContactsPermission() }
             )
             PermissionStatus.RequestRequired -> {
-                LaunchedEffect(Unit) { requestContactsPermission() }
+                LaunchedEffect(Unit) { requestReadContactsPermission() }
             }
             null -> {}
         }
@@ -89,7 +93,7 @@ fun ContactsScreen(viewModel: ContactsViewModel = hiltViewModel()) {
                     val snackbar = snackbarHostState.showSnackbar(
                         message = it.message,
                         actionLabel = it.action,
-                        duration = SnackbarDuration.Long
+                        duration = SnackbarDuration.Short
                     )
 
                     if (snackbar == SnackbarResult.ActionPerformed) {
@@ -98,7 +102,7 @@ fun ContactsScreen(viewModel: ContactsViewModel = hiltViewModel()) {
                                 context.openAppSettings()
                             }
                             context.getString(R.string.allow) -> {
-                                requestCallPermission()
+                                requestWriteContactsPermission()
                             }
                         }
                     }
@@ -112,10 +116,9 @@ fun ContactsScreen(viewModel: ContactsViewModel = hiltViewModel()) {
 internal fun ContactsScreenContent(
     state: ContactsState,
     dispatch: (ContactsEvent) -> Unit,
-    callPermissionStatus: PermissionStatus?,
-    requestCallPermission: () -> Unit
+    writeContactsPermissionStatus: PermissionStatus?,
+    requestWriteContactsPermission: () -> Unit
 ) {
-    val context = LocalContext.current
     LaunchedEffect(Unit) {
         dispatch(ContactsEvent.LoadContacts)
     }
@@ -123,7 +126,7 @@ internal fun ContactsScreenContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding(),
+            .systemBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Header()
@@ -131,15 +134,21 @@ internal fun ContactsScreenContent(
             CircularProgressIndicator()
         }
         else {
-            ContactsList(state.contacts, onCallContact = { phone ->
-                when (callPermissionStatus) {
-                    PermissionStatus.Granted -> { context.callContact(phone) }
-                    PermissionStatus.RequestRequired -> { requestCallPermission() }
-                    PermissionStatus.ShouldShowRationale -> { dispatch(ContactsEvent.ShowCallPermissionRationale) }
-                    PermissionStatus.DeniedPermanently -> { dispatch(ContactsEvent.ShowCallPermissionDenied) }
-                    null -> {}
-                }
-            })
+            ContactsList(state.contacts, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(8.dp))
+            CustomButton(
+                title = stringResource(R.string.delete_duplicates),
+                modifier = Modifier.padding(8.dp),
+                onClick = {
+                    when (writeContactsPermissionStatus) {
+                        PermissionStatus.DeniedPermanently -> { dispatch(ContactsEvent.ShowWriteContactsPermissionDenied) }
+                        PermissionStatus.Granted -> { dispatch(ContactsEvent.DeleteDuplicateContacts) }
+                        PermissionStatus.RequestRequired -> { requestWriteContactsPermission() }
+                        PermissionStatus.ShouldShowRationale -> { dispatch(ContactsEvent.ShowWriteContactsPermissionRationale) }
+                        null -> {}
+                    }
+                },
+            )
         }
     }
 }
@@ -161,12 +170,12 @@ internal fun Header() {
 
 @Composable
 internal fun ContactsList(
-    contacts: Map<Char,List<Contact>>,
-    onCallContact: (String) -> Unit
+    contacts: Map<Char, List<Contact>>,
+    modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = Modifier.padding(start = 8.dp),
-        contentPadding = WindowInsets.navigationBars.asPaddingValues()
+        modifier = modifier.padding(start = 8.dp),
+        // contentPadding = WindowInsets.navigationBars.asPaddingValues()
     ) {
         contacts.forEach { (key, contactsList) ->
             item {
@@ -181,7 +190,7 @@ internal fun ContactsList(
                 items = contactsList,
                 key = { index, item -> item.id }
             ) { index, item ->
-                ContactItem(item, onCallContact)
+                ContactItem(item)
                 if (index < contactsList.size - 1) {
                     HorizontalDivider(
                         modifier = Modifier
@@ -197,15 +206,11 @@ internal fun ContactsList(
 
 @Composable
 internal fun ContactItem(
-    contact: Contact,
-    onCallContact: (String) -> Unit
+    contact: Contact
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                onCallContact(contact.phone)
-            }
             .padding(vertical = 4.dp)
     ) {
         AsyncImage(
