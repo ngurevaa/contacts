@@ -108,8 +108,10 @@ class ContactsViewModel @Inject constructor(
                     }
                 }
                 .onFailure {
-                    ContactsSideEffect.ShowSnackbar(
-                        message = resourceManager.getString(R.string.duplicates_deleting_error)
+                    _sideEffect.emit(
+                        ContactsSideEffect.ShowSnackbar(
+                            message = resourceManager.getString(R.string.duplicates_deleting_error)
+                        )
                     )
                 }
         }
