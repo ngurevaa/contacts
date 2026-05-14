@@ -32,7 +32,7 @@ val Typography = Typography(
     titleMedium = baseline.titleMedium.copy(fontFamily = medium, fontSize = 18.sp),
     titleSmall = baseline.titleSmall.copy(fontFamily = medium),
     bodyLarge = baseline.bodyLarge.copy(fontFamily = regular),
-    bodyMedium = baseline.bodyMedium.copy(fontFamily = regular, fontSize = 18.sp),
+    bodyMedium = baseline.bodyMedium.copy(fontFamily = regular),
     bodySmall = baseline.bodySmall.copy(fontFamily = regular, fontSize = 14.sp),
     labelLarge = baseline.labelLarge.copy(fontFamily = regular),
     labelMedium = baseline.labelMedium.copy(fontFamily = regular),

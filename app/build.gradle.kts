@@ -38,6 +38,14 @@ android {
     }
     buildFeatures {
         compose = true
+        aidl = true
+    }
+    sourceSets {
+        getByName("main") {
+            aidl {
+                srcDirs("src\\main\\aidl", "src\\main\\aidl\\ru\\gureva\\yadro")
+            }
+        }
     }
 }
 
@@ -45,6 +53,8 @@ dependencies {
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation)
+    
+    implementation(libs.coil)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
