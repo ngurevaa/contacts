@@ -45,7 +45,6 @@ fun ContactsShouldShowRationaleScreen(
         CustomTextButton(
             title = stringResource(R.string.not_now),
             onClick = {
-                // back to the previous screen
             }
         )
     }
