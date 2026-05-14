@@ -24,15 +24,14 @@ class ContactRepositoryImpl @Inject constructor(
                     ContactsContract.CommonDataKinds.Phone.PHOTO_URI
                 ),
                 null,
-                // "${ContactsContract.RawContacts.ACCOUNT_TYPE} IS NULL",
                 null,
                 "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} ASC"
             )
 
             val contacts = mutableListOf<Contact>()
             cursor?.use {
-                val idIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
-                val nameIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                val idIndex = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
+                val nameIndex = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
                 val numberIndex = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
                 val imageIndex = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.PHOTO_URI)
 
